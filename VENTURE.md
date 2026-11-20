@@ -1,13 +1,13 @@
 ---
 slug: local-screen-recorder
-stage: idea
+stage: building
 priority: 3
-url:
-repo:
+url: https://janwan2003.github.io/local-screen-recorder/
+repo: https://github.com/janwan2003/local-screen-recorder
 updated: 2026-11-20
 ---
 
-# local-screen-recorder
+# local-screen-recorder (product name: Diskreel)
 
 ## Thesis
 
@@ -91,22 +91,41 @@ compete on concrete points:
 
 ## Status
 
-Idea only. Nothing built. Evidence above: live curl of 14 Chrome Web Store listings on
-2026-11-20; web search for free-plan limits (Atlassian docs, CostBench, Capterra) and
-search volume (Semrush snapshots).
+**Diskreel 0.1.0 is built and published as a web app; the extension is packaged but not in a store.**
+
+What exists (all verified by `pnpm e2e` in Playwright Chromium 159 on janeks-pc, 2026-11-20, with fake camera/mic/screen):
+- Recorder web app at https://janwan2003.github.io/local-screen-recorder/app/ and the same app as an MV3 extension
+  (`dist/diskreel-0.1.0.zip`, 228 KB, no permissions, Alt+Shift+R). Install from the zip is documented on the site.
+- Screen/window/tab capture with a mirrored round webcam bubble (3 sizes, 4 corners), camera-only mode,
+  mic + tab/system audio mixed, mic level meter, 3-s countdown, pause/resume, Document PiP floating controls.
+- Encoding in a worker: H.264 video (VP9/AV1/VP8 fallback), AAC audio where the browser encodes it, else Opus,
+  into a fragmented MP4 in OPFS. Spike result: Linux Chromium encodes H.264 High (`avc1.640028`) but not AAC.
+- Crash safety: e2e closes the tab 5 s into a recording; 4.04 s survived, playable (ffprobe), and reopens in the UI.
+- Review: player, trim handles (copy, not re-encode), Save MP4 (regular fast-start MP4, checked: `moov` before media,
+  no `moof`, decodes with ffmpeg -xerror), Save WebM (VP9+Opus), rename, delete, library listing with storage use.
+- e2e output on that run: 4 s recording with a 1.5 s pause → 4.17 s file, h264 1920×1080 + opus; trim 25–75 % → 2.09 s;
+  WebM 4.17 s vp9+opus; camera-only 1280×720, no audio track; extension recording 2.57 s h264+opus; no console errors.
+- Unit tests: 7 (`pnpm test`, `test/lib.test.mjs`): sizing, bubble geometry, formatting, names, trim clamping.
+- Screenshots checked at 1280×800 and 390×844 (`node scripts/screenshots.js`): app and landing page.
+- Site: landing page (features, free-plan comparison citing Loom's own FAQ, install steps, FAQ), privacy page,
+  robots.txt, sitemap.xml, OG image. Deployed by GitHub Actions (`.github/workflows/ci.yml`) after unit + e2e tests.
+
+Not covered yet: real (non-fake) devices and a real screen picker were not exercised; AAC output was not
+tested (no AAC encoder on Linux); system audio capture untested; long recordings (>1 min) and CPU use not measured;
+Windows/macOS untested. Evidence re-check: live curl 2026-11-20 confirmed Loom 8M users / 2.7, Screencastify 9M / 3.5,
+Screenity 300K / 3.7.
 
 ## Next steps
 
-1. Spike: record tab+mic and screen+webcam, then encode to MP4 with WebCodecs in an
-   offscreen document. Measure CPU and file size for a 10-minute 1080p recording on
-   janeks-pc. This decides whether MP4-first is viable. If it is not, drop to p2.
-2. Read the 1 to 2-star reviews of Loom, Screencastify and Screenity (CWS review pages
-   render client-side, so use a browser) and list the top 5 complaints with counts.
-   Put the list in this file.
-3. Pick a distinct name (avoid every name in the table).
-4. Build the recorder, crash-safe chunk storage, then the editor.
-5. Static web app version on GitHub Pages with 4 to 6 landing pages.
-6. Publishing needs the Chrome Web Store developer account (already in OPERATOR-INBOX.md).
+1. Upload the extension to the Chrome Web Store as a draft with the API (enabled per OPERATOR-INBOX "Resolved";
+   see `ventures/save-image-format/scripts/cws-upload.py` for a working example), write `store/chrome-privacy.md`
+   and 1280×800 store screenshots, add one inbox line. Also submit to Edge when that account exists.
+2. Measure a 10-minute 1080p recording on janeks-pc (CPU, file size, dropped frames); fix if the worker falls behind.
+3. Verify Search Console for the Pages site and submit the sitemap (`GSC_REFRESH_TOKEN`).
+4. 4-6 landing pages for search: "screen recorder no watermark", "record screen to MP4", "screen recorder for
+   Chromebook/teachers", "record a tab with audio".
+5. Editor features: cut a middle section, crop, speed-up, silence removal, GIF export (the thesis' editor list).
+6. Read 1-2-star reviews of Loom/Screencastify/Screenity in a browser and list top complaints (old step 2, not done).
 
 ## Monetization plan
 
@@ -120,3 +139,9 @@ leave the incumbents.
 - 2026-11-20 scout: created idea. Evidence: live curl of Chrome Web Store search "screen
   recorder" and 14 listings; web search for Loom/Screencastify plan limits and Semrush
   keyword snapshots.
+- 2026-11-20 builder: re-checked evidence (live curl of 3 CWS listings), ran a codec spike (H.264 yes, AAC no on
+  Linux Chromium), named it Diskreel, built recorder web app + MV3 extension + site, unit tests (7 pass) and
+  real-browser e2e (web app + extension pass, crash test found and fixed a 1 MB write buffer that left short
+  interrupted recordings empty; e2e also caught a `hidden` overlay bug). Published repo + GitHub Pages: CI run
+  44796641050 green (unit + e2e + deploy); live smoke test on the Pages URL recorded 0:02 1920×1080 H.264+Opus, no
+  console errors. CI's apt ffmpeg install took 17 min, replaced with a static ffmpeg download.
