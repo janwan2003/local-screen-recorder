@@ -163,7 +163,9 @@ async function webApp(browser, base) {
   await page.click('label:has(input[name=mode][value=screen])');
   await page.click('#start');
   await page.waitForFunction(() => document.getElementById('rec-state').textContent === 'Recording');
-  await page.waitForTimeout(5000);
+  // The promise is "everything up to the last written fragment": wait until data is on disk, then 3 s more.
+  await page.waitForFunction(() => document.getElementById('rec-size').textContent !== '0 B', null, { timeout: 30000 });
+  await page.waitForTimeout(3000);
   await page.close({ runBeforeUnload: false });
   const page2 = await ctx.newPage();
   watchConsole(page2, errors);
@@ -174,7 +176,7 @@ async function webApp(browser, base) {
   const cr = probe(await opfsFile(page2, newest));
   console.log('after closing the tab mid-recording:', cr);
   assert.equal(cr.v, 'h264');
-  assert.ok(cr.duration >= 2, `kept at least 2 s of a 5 s recording (got ${cr.duration})`);
+  assert.ok(cr.duration >= 1.5, `kept at least 1.5 s of the recording (got ${cr.duration})`);
   await page2.click('#lib-list li button');
   await page2.waitForFunction(() => /MP4/.test(document.getElementById('info').textContent));
 

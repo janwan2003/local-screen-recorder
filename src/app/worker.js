@@ -50,12 +50,10 @@ async function start(m) {
   const audioCodec = m.audio ? await getFirstEncodableAudioCodec(['aac', 'opus'], { numberOfChannels: 2, sampleRate: m.sampleRate || 48000 }) : null;
 
   const access = await openOpfsFile(m.name);
-  let lastFlush = 0;
   const writable = new WritableStream({
     write(chunk) {
       access.write(chunk.data, { at: chunk.position });
-      const now = performance.now();
-      if (now - lastFlush > 3000) { access.flush(); lastFlush = now; }
+      access.flush(); // fragments arrive about once a second; flushing each keeps a crash from losing them
     },
     close() { access.flush(); access.close(); },
     abort() { try { access.close(); } catch {} },
