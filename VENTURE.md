@@ -100,7 +100,8 @@ What exists (all verified by `pnpm e2e` in Playwright Chromium 159 on janeks-pc,
   mic + tab/system audio mixed, mic level meter, 3-s countdown, pause/resume, Document PiP floating controls.
 - Encoding in a worker: H.264 video (VP9/AV1/VP8 fallback), AAC audio where the browser encodes it, else Opus,
   into a fragmented MP4 in OPFS. Spike result: Linux Chromium encodes H.264 High (`avc1.640028`) but not AAC.
-- Crash safety: e2e closes the tab 5 s into a recording; 4.04 s survived, playable (ffprobe), and reopens in the UI.
+- Crash safety: e2e closes the tab 3 s after the first bytes reach disk; 2.04 s survived (local run), playable
+  (ffprobe), and reopens in the UI. A tab closed before the first fragment (~2 s) is written loses that recording.
 - Review: player, trim handles (copy, not re-encode), Save MP4 (regular fast-start MP4, checked: `moov` before media,
   no `moof`, decodes with ffmpeg -xerror), Save WebM (VP9+Opus), rename, delete, library listing with storage use.
 - e2e output on that run: 4 s recording with a 1.5 s pause → 4.17 s file, h264 1920×1080 + opus; trim 25–75 % → 2.09 s;
@@ -144,4 +145,7 @@ leave the incumbents.
   real-browser e2e (web app + extension pass, crash test found and fixed a 1 MB write buffer that left short
   interrupted recordings empty; e2e also caught a `hidden` overlay bug). Published repo + GitHub Pages: CI run
   44796641050 green (unit + e2e + deploy); live smoke test on the Pages URL recorded 0:02 1920×1080 H.264+Opus, no
-  console errors. CI's apt ffmpeg install took 17 min, replaced with a static ffmpeg download.
+  console errors. CI's apt ffmpeg install took 17 min, replaced with a static ffmpeg download (CI now ~2 min).
+  CI run 44799549194 then failed the crash test (tab closed at 5 s before the first fragment reached disk on the
+  slow runner): writer now flushes every fragment and the test closes the tab once bytes are on disk + 3 s;
+  CI run 44799833449 green (aaea300). Locally that test keeps 2.04 s; one green CI run of the new test so far.
