@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diskreel recorder: record your screen to MP4</title>
+<meta name="description" content="Record your screen, a window or a tab with webcam and microphone. Saves MP4 to your own disk. No account, no upload, no watermark, no time limit.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="./" aria-label="Diskreel">
+    <img src="icon.svg" alt="" width="28" height="28"><span>Diskreel</span>
+  </a>
+  <p class="tag">Records to your disk. No account, no upload, no limits.</p>
+  <nav><a id="home-link" href="../">About</a><a id="privacy-link" href="../privacy.html">Privacy</a></nav>
+</header>
+
+<main>
+  <div id="unsupported" class="notice" hidden></div>
+
+  <!-- Setup -->
+  <section id="setup" class="card" aria-labelledby="setup-h">
+    <h1 id="setup-h">New recording</h1>
+    <div class="grid">
+      <div class="controls">
+        <fieldset class="field">
+          <legend>Record</legend>
+          <div class="seg" role="radiogroup" aria-label="What to record">
+            <label><input type="radio" name="mode" value="screen" checked><span>Screen, window or tab</span></label>
+            <label><input type="radio" name="mode" value="camera"><span>Camera only</span></label>
+          </div>
+        </fieldset>
+
+        <div class="field row">
+          <label class="switch"><input type="checkbox" id="cam-on"><span class="knob"></span>Camera</label>
+          <select id="cam-dev" aria-label="Camera" disabled><option>No camera</option></select>
+        </div>
+
+        <div class="field row">
+          <label class="switch"><input type="checkbox" id="mic-on"><span class="knob"></span>Microphone</label>
+          <select id="mic-dev" aria-label="Microphone" disabled><option>No microphone</option></select>
+          <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
+        </div>
+
+        <div class="field row" id="sys-row">
+          <label class="switch"><input type="checkbox" id="sys-audio" checked><span class="knob"></span>Tab or system sound</label>
+          <span class="hint">Chrome asks in its share dialog</span>
+        </div>
+
+        <div class="field row" id="bubble-row">
+          <span class="label">Camera bubble</span>
+          <div class="seg small" role="radiogroup" aria-label="Bubble size">
+            <label><input type="radio" name="bsize" value="small"><span>S</span></label>
+            <label><input type="radio" name="bsize" value="medium" checked><span>M</span></label>
+            <label><input type="radio" name="bsize" value="large"><span>L</span></label>
+          </div>
+          <div class="seg small" role="radiogroup" aria-label="Bubble corner">
+            <label title="Bottom left"><input type="radio" name="bcorner" value="bottom-left" checked><span>↙</span></label>
+            <label title="Bottom right"><input type="radio" name="bcorner" value="bottom-right"><span>↘</span></label>
+            <label title="Top left"><input type="radio" name="bcorner" value="top-left"><span>↖</span></label>
+            <label title="Top right"><input type="radio" name="bcorner" value="top-right"><span>↗</span></label>
+          </div>
+        </div>
+
+        <div class="field row">
+          <label class="switch"><input type="checkbox" id="countdown" checked><span class="knob"></span>3-second countdown</label>
+        </div>
+
+        <button id="start" class="btn rec big" type="button"><i class="dot"></i>Start recording</button>
+        <p class="fine">Saved as MP4 in this browser while you record, so a crash or closed tab loses nothing. Save it to any folder afterwards.</p>
+      </div>
+
+      <div class="preview" id="preview" data-corner="bottom-left" data-size="medium">
+        <div class="screen-ph">
+          <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h16V6H4Z"/></svg>
+          <span id="preview-label">You choose the screen, window or tab after pressing Start</span>
+        </div>
+        <video id="cam-preview" class="bubble" muted playsinline autoplay hidden></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Countdown -->
+  <div id="countdown-ov" class="overlay" hidden><span id="countdown-n">3</span></div>
+
+  <!-- Recording -->
+  <section id="recording" class="card rec-card" hidden aria-live="polite">
+    <div class="rec-status"><i class="dot pulse"></i><span id="rec-state">Recording</span></div>
+    <div class="timer" id="timer">0:00</div>
+    <div class="rec-meta"><span id="rec-size">0 B</span> · <span id="rec-res"></span> · <span id="rec-codec"></span></div>
+    <div class="actions">
+      <button id="pause" class="btn" type="button">Pause</button>
+      <button id="stop" class="btn rec" type="button"><i class="sq"></i>Stop</button>
+      <button id="popout" class="btn ghost" type="button" hidden>Floating controls</button>
+    </div>
+    <p class="fine">You can switch to the window you are recording. Stop here, in the floating controls, or with the browser's "Stop sharing" button.</p>
+  </section>
+
+  <!-- Review -->
+  <section id="review" class="card" hidden aria-labelledby="review-h">
+    <div class="review-head">
+      <h1 id="review-h">Your recording</h1>
+      <input id="rec-name" class="name-input" aria-label="Recording name" spellcheck="false">
+    </div>
+    <video id="player" controls playsinline preload="metadata"></video>
+    <div class="trim" id="trim">
+      <div class="trim-track"><div class="trim-sel" id="trim-sel"></div></div>
+      <input type="range" id="trim-a" min="0" max="1000" value="0" step="1" aria-label="Trim start">
+      <input type="range" id="trim-b" min="0" max="1000" value="1000" step="1" aria-label="Trim end">
+    </div>
+    <div class="trim-row">
+      <button id="set-a" class="btn ghost sm" type="button">Start here</button>
+      <span id="trim-label" class="trim-label">Full recording</span>
+      <button id="set-b" class="btn ghost sm" type="button">End here</button>
+    </div>
+    <div class="info" id="info"></div>
+    <div class="actions">
+      <button id="save-mp4" class="btn primary" type="button">Save MP4</button>
+      <button id="save-webm" class="btn" type="button">Save WebM</button>
+      <button id="delete" class="btn danger ghost" type="button">Delete</button>
+      <button id="new" class="btn ghost" type="button">New recording</button>
+    </div>
+    <div class="progress" id="progress" hidden><i id="progress-bar"></i><span id="progress-label"></span></div>
+  </section>
+
+  <!-- Library -->
+  <section id="library" class="card" aria-labelledby="lib-h">
+    <div class="lib-head">
+      <h2 id="lib-h">Recordings in this browser</h2>
+      <span id="usage" class="fine"></span>
+    </div>
+    <ul id="lib-list" class="lib"></ul>
+    <p id="lib-empty" class="fine">No recordings yet. They appear here and stay until you delete them.</p>
+  </section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</main>
+
+<footer class="foot">
+  <span>Diskreel is open source and makes no network requests while you record.</span>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

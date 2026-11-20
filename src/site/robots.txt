@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://janwan2003.github.io/local-screen-recorder/sitemap.xml
